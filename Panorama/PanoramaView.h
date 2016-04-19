@@ -12,11 +12,6 @@
  */
 @interface PanoramaView : GLKView
 
-
--(id)init;  // recommended init method
-
--(void)draw;  // place in GLKViewController's glkView:drawInRect:
-
 /// Set image by path or bundle - will check at both
 -(void)setImage:(UIImage *)image;
 -(void)setImageByFilename:(NSString *)filePath;
