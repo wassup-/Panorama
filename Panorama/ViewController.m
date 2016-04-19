@@ -19,7 +19,7 @@
 - (void)viewDidLoad{
     [super viewDidLoad];
     panoramaView = [[PanoramaView alloc] init];
-    [panoramaView setImage:@"park_2048.jpg"];
+    [panoramaView setImageByFilename:@"park_2048.jpg"];
     [panoramaView setOrientToDevice:YES];
     [panoramaView setTouchToPan:NO];
     [panoramaView setPinchToZoom:YES];

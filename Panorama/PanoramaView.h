@@ -18,7 +18,8 @@
 -(void)draw;  // place in GLKViewController's glkView:drawInRect:
 
 /// Set image by path or bundle - will check at both
--(void) setImage:(NSString*)fileName;
+-(void)setImage:(UIImage *)image;
+-(void)setImageByFilename:(NSString *)filePath;
 
 
 /* orientation */
@@ -66,7 +67,7 @@
 /*  projection & touches  */
 
 
-@property (nonatomic, readonly) NSSet *touches;
+@property (nonatomic, readonly) NSSet<UITouch*> *touches;
 
 @property (nonatomic, readonly) NSInteger numberOfTouches;
 
