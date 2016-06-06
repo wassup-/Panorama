@@ -28,7 +28,7 @@ typedef NS_ENUM(NSUInteger, SensorOrientation) {
     SensorOrientationNorth,
     SensorOrientationEast,
     SensorOrientationSouth,
-    SensorOrientationWest
+    SensorOrientationWest,
 };
 
 SensorOrientation GetSensorOrientation() {
@@ -54,7 +54,7 @@ SensorOrientation GetSensorOrientation() {
 
 // this really should be included in GLKit
 GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
-    GLKVector3 w = GLKVector3CrossProduct(u, v);
+    const GLKVector3 w = GLKVector3CrossProduct(u, v);
     GLKQuaternion q = GLKQuaternionMake(w.x, w.y, w.z, GLKVector3DotProduct(u, v));
     q.w += GLKQuaternionLength(q);
     return GLKQuaternionNormalize(q);
@@ -187,7 +187,7 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
 
 -(void)initOpenGL:(EAGLContext*)context {
     [(CAEAGLLayer*)self.layer setOpaque:NO];
-    _aspectRatio = self.frame.size.width/self.frame.size.height;
+    _aspectRatio = CGRectGetWidth(self.frame) / CGRectGetHeight(self.frame);
     _fieldOfView = 45 + 45 * atanf(_aspectRatio); // hell ya
     [self rebuildProjectionMatrix];
     _attitudeMatrix = GLKMatrix4Identity;
@@ -223,7 +223,8 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
 
 -(void)draw {
     static GLfloat const whiteColor[] = {1.f, 1.f, 1.f, 1.f};
-    static GLfloat const clearColor[] = {0.f, 0.f, 0.f, 0.f};
+    static GLfloat const clearColor[] = {.7f, .7f, .7f, 1.f};
+	static GLfloat const touchColor[] = {1.f, 0.f, 0.f, .6f};
 
     glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -246,7 +247,7 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
 
     // touch lines
     if(_showTouches && _numberOfTouches) {
-        glColor4f(1.f, 1.f, 1.f, 0.5f);
+		glColor4f(touchColor[0], touchColor[1], touchColor[2], touchColor[3]);
         for(int i = 0; i < _touches.allObjects.count; i++) {
             UITouch *const touch = (UITouch*)[_touches.allObjects objectAtIndex:i];
             CGPoint touchPoint = [touch locationInView:self];
@@ -255,7 +256,7 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
             [self drawHotspotLines:[self vectorFromScreenLocation:touchPoint inAttitude:_attitudeMatrix]];
             glPopMatrix();
         }
-        glColor4f(1.f, 1.f, 1.f, 1.f);
+		glColor4f(whiteColor[0], whiteColor[1], whiteColor[2], whiteColor[3]);
     }
 
     glPopMatrix(); // end device orientation
@@ -326,7 +327,7 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
 -(CGPoint)imagePixelFromVector:(GLKVector3)vector {
     CGPoint pxl = CGPointMake((M_PI - atan2f(-vector.z, -vector.x)) / (2 * M_PI),
                               acosf(vector.y) / M_PI);
-    CGPoint tex = [sphere getTextureSize];
+    const CGPoint tex = [sphere getTextureSize];
     // if no texture exists, returns between 0.0 - 1.0
     if(!(tex.x == 0.f && tex.y == 0.f)) {
         pxl.x *= tex.x;
@@ -341,8 +342,8 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
 
 -(GLKVector3)vectorFromScreenLocation:(CGPoint)point inAttitude:(GLKMatrix4)matrix {
     GLKMatrix4 inverse = GLKMatrix4Invert(GLKMatrix4Multiply(_projectionMatrix, matrix), nil);
-    GLKVector4 screen = GLKVector4Make(2.0 * (point.x / self.frame.size.width - .5),
-                                       2.0 * (.5 - point.y / self.frame.size.height),
+    GLKVector4 screen = GLKVector4Make(2.0 * (point.x / CGRectGetWidth(self.frame) - .5),
+                                       2.0 * (.5 - point.y / CGRectGetHeight(self.frame)),
                                        1.0, 1.0);
     //    if (GetSensorOrientation() == SensorOrientationSouth || GetSensorOrientation() == SensorOrientationWest)
     //        screen = GLKVector4Make(2.0*(screenTouch.x/self.frame.size.height-.5),
@@ -355,8 +356,8 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
 -(CGPoint)screenLocationFromVector:(GLKVector3)vector {
     GLKMatrix4 matrix = GLKMatrix4Multiply(_projectionMatrix, _attitudeMatrix);
     GLKVector3 screenVector = GLKMatrix4MultiplyVector3(matrix, vector);
-    return CGPointMake((screenVector.x / screenVector.z / 2.0 + 0.5) * self.frame.size.width,
-                       (0.5 - screenVector.y / screenVector.z / 2) * self.frame.size.height);
+    return CGPointMake((screenVector.x / screenVector.z / 2.0 + 0.5) * CGRectGetWidth(self.frame),
+                       (0.5 - screenVector.y / screenVector.z / 2) * CGRectGetHeight(self.frame));
 }
 
 -(BOOL)computeScreenLocation:(CGPoint*)location fromVector:(GLKVector3)vector inAttitude:(GLKMatrix4)matrix {
@@ -367,8 +368,8 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
     matrix = GLKMatrix4Multiply(_projectionMatrix, matrix);
     GLKVector4 vector4 = GLKVector4Make(vector.x, vector.y, vector.z, 1);
     GLKVector4 screenVector = GLKMatrix4MultiplyVector4(matrix, vector4);
-    location->x = (screenVector.x/screenVector.w/2.0 + 0.5) * self.frame.size.width;
-    location->y = (0.5-screenVector.y/screenVector.w/2) * self.frame.size.height;
+    location->x = (screenVector.x / screenVector.w / 2.0 + 0.5) * CGRectGetWidth(self.frame);
+    location->y = (0.5 - screenVector.y / screenVector.w / 2.0) * CGRectGetHeight(self.frame);
     return (screenVector.z >= 0);
 }
 
@@ -508,32 +509,27 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
 
         m_Stacks = stacks;
         m_Slices = slices;
-        m_VertexData = nil;
-        m_TexCoordsData = nil;
         // Vertices
-        GLfloat *vPtr = m_VertexData = (GLfloat*)malloc(sizeof(GLfloat) * 3 * ((m_Slices*2+2) * (m_Stacks)));
+        GLfloat *vPtr = m_VertexData = (GLfloat*)malloc(sizeof(GLfloat) * 3 * ((m_Slices * 2 + 2) * m_Stacks));
         // Normals
-        GLfloat *nPtr = m_NormalData = (GLfloat*)malloc(sizeof(GLfloat) * 3 * ((m_Slices*2+2) * (m_Stacks)));
-        GLfloat *tPtr = nil;
-        tPtr = m_TexCoordsData = (GLfloat*)malloc(sizeof(GLfloat) * 2 * ((m_Slices*2+2) * (m_Stacks)));
-        unsigned int phiIdx, thetaIdx;
+        GLfloat *nPtr = m_NormalData = (GLfloat*)malloc(sizeof(GLfloat) * 3 * ((m_Slices * 2 + 2) * m_Stacks));
+        GLfloat *tPtr = m_TexCoordsData = (GLfloat*)malloc(sizeof(GLfloat) * 2 * ((m_Slices * 2 + 2) * m_Stacks));
         // Latitude
-        for(phiIdx = 0; phiIdx < m_Stacks; phiIdx++) {
+        for(unsigned phiIdx = 0; phiIdx < m_Stacks; phiIdx++) {
             //starts at -pi/2 goes to pi/2
             //the first circle
-            float phi0 = M_PI * ((float)(phiIdx+0) * (1.0/(float)(m_Stacks)) - 0.5);
+            const float phi0 = M_PI * ((float)(phiIdx+0) * (1.0/(float)(m_Stacks)) - 0.5);
             //second one
-            float phi1 = M_PI * ((float)(phiIdx+1) * (1.0/(float)(m_Stacks)) - 0.5);
-            float cosPhi0 = cos(phi0);
-            float sinPhi0 = sin(phi0);
-            float cosPhi1 = cos(phi1);
-            float sinPhi1 = sin(phi1);
-            float cosTheta, sinTheta;
+            const float phi1 = M_PI * ((float)(phiIdx+1) * (1.0/(float)(m_Stacks)) - 0.5);
+            const float cosPhi0 = cos(phi0);
+            const float sinPhi0 = sin(phi0);
+            const float cosPhi1 = cos(phi1);
+            const float sinPhi1 = sin(phi1);
             //longitude
-            for(thetaIdx = 0; thetaIdx < m_Slices; thetaIdx++) {
-                float theta = -2.0*M_PI * ((float)thetaIdx) * (1.0/(float)(m_Slices - 1));
-                cosTheta = cos(theta+M_PI*.5);
-                sinTheta = sin(theta+M_PI*.5);
+            for(unsigned thetaIdx = 0; thetaIdx < m_Slices; thetaIdx++) {
+                const float theta = -2.0*M_PI * ((float)thetaIdx) * (1.0 / (float)(m_Slices - 1));
+                const float cosTheta = cos(theta + M_PI * .5);
+                const float sinTheta = sin(theta + M_PI * .5);
                 //get x-y-x of the first vertex of stack
                 vPtr[0] = m_Scale * cosPhi0 * cosTheta;
                 vPtr[1] = m_Scale * sinPhi0;
@@ -548,18 +544,16 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
                 nPtr[3] = cosPhi1 * cosTheta;
                 nPtr[4] = sinPhi1;
                 nPtr[5] = cosPhi1 * sinTheta;
-                if(tPtr!=nil) {
-                    GLfloat texX = (float)thetaIdx * (1.f / (float)(m_Slices - 1));
-                    tPtr[0] = 1.0 - texX;
-                    tPtr[1] = (float)(phiIdx + 0) * (1.f / (float)(m_Stacks));
-                    tPtr[2] = 1.0 - texX;
-                    tPtr[3] = (float)(phiIdx + 1) * (1.f / (float)(m_Stacks));
-                }
+				
+				GLfloat texX = (float)thetaIdx * (1.f / (float)(m_Slices - 1));
+				tPtr[0] = 1.0 - texX;
+				tPtr[1] = (float)(phiIdx + 0) * (1.f / (float)(m_Stacks));
+				tPtr[2] = 1.0 - texX;
+				tPtr[3] = (float)(phiIdx + 1) * (1.f / (float)(m_Stacks));
+				
                 vPtr += 2 * 3;
                 nPtr += 2 * 3;
-                if(tPtr != nil) {
-                    tPtr += 2 * 2;
-                }
+                tPtr += 2 * 2;
             }
             //Degenerate triangle to connect stacks and maintain winding order
             vPtr[0] = vPtr[3] = vPtr[-3];
@@ -568,10 +562,9 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
             nPtr[0] = nPtr[3] = nPtr[-3];
             nPtr[1] = nPtr[4] = nPtr[-2];
             nPtr[2] = nPtr[5] = nPtr[-1];
-            if(tPtr != nil) {
-                tPtr[0] = tPtr[2] = tPtr[-2];
-                tPtr[1] = tPtr[3] = tPtr[-1];
-            }
+			
+			tPtr[0] = tPtr[2] = tPtr[-2];
+			tPtr[1] = tPtr[3] = tPtr[-1];
         }
     }
     return self;
@@ -628,37 +621,58 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
     }
 
     UIImage *image = [UIImage imageWithContentsOfFile:path];
-    return [self loadTextureFromUIImage:image];
+	return [self loadTextureFromUIImage:image withOptions:@{
+															GLKTextureLoaderApplyPremultiplication: @YES,
+															}];
 }
 
 -(GLKTextureInfo *)loadTextureFromUIImage:(UIImage *)image {
-    if(!image) {
-        return nil;
-    }
-
-    NSDictionary *options = [NSDictionary dictionaryWithObjectsAndKeys:@(YES), GLKTextureLoaderOriginBottomLeft, nil];
-    NSError *error = nil;
-    GLKTextureInfo *const info = [GLKTextureLoader textureWithCGImage: image.CGImage
-                                                              options: options
-                                                                error: &error];
-
-    if(error) {
-        NSLog(@"error: %@", error);
-        return nil;
-    }
-
-    if(!info) {
-        return nil;
-    }
-
-    glBindTexture(GL_TEXTURE_2D, info.name);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, IMAGE_SCALING);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, IMAGE_SCALING);
-
-    return info;
+	return [self loadTextureFromUIImage:image withOptions:nil];
 }
+
+-(GLKTextureInfo *)loadTextureFromUIImage:(UIImage *)image withOptions:(NSDictionary *)extraOptions {
+	if(!image) {
+		return nil;
+	}
+	
+	NSDictionary *options = nil;
+	
+	{
+		NSMutableDictionary *mutableOptions = [NSMutableDictionary new];
+		if(extraOptions) {
+			[mutableOptions addEntriesFromDictionary:extraOptions];
+		}
+		[mutableOptions setObject:@YES forKey:GLKTextureLoaderOriginBottomLeft];
+	
+		options = mutableOptions;
+	}
+	
+	
+	NSLog(@"glGetError(): %@", @(glGetError()));
+	
+	NSError *error = nil;
+	GLKTextureInfo *const info = [GLKTextureLoader textureWithCGImage: image.CGImage
+															  options: options
+																error: &error];
+	
+	if(error) {
+		NSLog(@"error: %@", error);
+		return nil;
+	}
+	
+	if(!info) {
+		return nil;
+	}
+	
+	glBindTexture(GL_TEXTURE_2D, info.name);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, IMAGE_SCALING);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, IMAGE_SCALING);
+	
+	return info;
+}
+
 
 -(void)swapTextureWithImage:(UIImage *)image {
     GLuint name = m_TextureInfo.name;
