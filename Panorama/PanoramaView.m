@@ -13,7 +13,6 @@
 
 #import <OpenGLES/ES1/gl.h>
 
-
 #define FOV_MIN 1
 #define FOV_MAX 155
 #define Z_NEAR 0.1f
@@ -80,48 +79,24 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
 @implementation PanoramaView
 
 -(instancetype)init {
-	self = [super init];
-//	[self commonInit];
-	return self;
-}
-
--(instancetype)initWithCoder:(NSCoder *)aDecoder {
-	self = [super initWithCoder:aDecoder];
-	[self commonInit];
-	return self;
+	return [self initWithFrame:UIScreen.mainScreen.bounds];
 }
 
 -(instancetype)initWithFrame:(CGRect)frame {
-	self = [super initWithFrame:frame];
-	if(CGRectIsEmpty(frame)) {
-		frame = UIScreen.mainScreen.bounds;
-	}
-	[self commonInit:frame];
-	return self;
+	EAGLContext *const context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES1];
+	[EAGLContext setCurrentContext:context];
+	self.context = context;
+	return [self initWithFrame:frame context:context];
 }
 
 -(id)initWithFrame:(CGRect)frame context:(EAGLContext *)context {
     self = [super initWithFrame:frame context:context];
-	[self commonInit:frame context:context];
-    return self;
-}
-
--(void)commonInit {
-	const CGRect frame = UIScreen.mainScreen.bounds;
-	[self commonInit:frame];
-}
-
--(void)commonInit:(CGRect)frame {
-	EAGLContext *const context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
-	[EAGLContext setCurrentContext:context];
-	self.context = context;
-	[self commonInit:frame context:context];
-}
-
--(void)commonInit:(CGRect)frame context:(EAGLContext *)context {
+	
 	[self initDevice];
 	[self initOpenGL:context];
 	self.sphere = [[PanoramaSphere alloc] init:48 slices:48 radius:10.0 textureFile:nil];
+	
+    return self;
 }
 
 -(void)initDevice {
@@ -215,47 +190,47 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
--(void)display {
-    [super display];
-
-    static GLfloat const whiteColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
-    static GLfloat const clearColor[] = {0.7f, 0.7f, 0.7f, 1.0f};
+-(void)drawRect:(CGRect)rect {
+	[super drawRect:rect];
+	
+	static GLfloat const whiteColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+	static GLfloat const clearColor[] = {0.7f, 0.7f, 0.7f, 1.0f};
 	static GLfloat const touchColor[] = {1.0f, 0.0f, 0.0f, 0.7f};
-
-    glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
-    glClear(GL_COLOR_BUFFER_BIT);
-    glPushMatrix(); // begin device orientation
-
-    self.attitudeMatrix = GLKMatrix4Multiply([self getDeviceOrientationMatrix], self.offsetMatrix);
-    [self updateLook];
-
-    glMultMatrixf(self.attitudeMatrix.m);
-
-    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, whiteColor);  // panorama at full color
-    [self.sphere render];
-    glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, clearColor);
-    //        [meridians render];  // semi-transparent texture overlay (15° meridian lines)
-
-    //TODO: add any objects here to make them a part of the virtual reality
-    //        glPushMatrix();
-    //        // object code
-    //        glPopMatrix();
-
-    // touch lines
-    if(_showTouches && _numberOfTouches) {
+	
+	glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
+	glClear(GL_COLOR_BUFFER_BIT);
+	glPushMatrix(); // begin device orientation
+	
+	self.attitudeMatrix = GLKMatrix4Multiply([self getDeviceOrientationMatrix], self.offsetMatrix);
+	[self updateLook];
+	
+	glMultMatrixf(self.attitudeMatrix.m);
+	
+	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, whiteColor);  // panorama at full color
+	[self.sphere render];
+	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, clearColor);
+	//        [meridians render];  // semi-transparent texture overlay (15° meridian lines)
+	
+	//TODO: add any objects here to make them a part of the virtual reality
+	//        glPushMatrix();
+	//        // object code
+	//        glPopMatrix();
+	
+	// touch lines
+	if(_showTouches && _numberOfTouches) {
 		glColor4f(touchColor[0], touchColor[1], touchColor[2], touchColor[3]);
-        for(unsigned i = 0; i < _touches.allObjects.count; i++) {
-            UITouch *const touch = (UITouch*)[_touches.allObjects objectAtIndex:i];
-            CGPoint touchPoint = [touch locationInView:self];
-
-            glPushMatrix();
-            [self drawHotspotLines:[self vectorFromScreenLocation:touchPoint inAttitude:self.attitudeMatrix]];
-            glPopMatrix();
-        }
-        glColor4f(whiteColor[0], whiteColor[1], whiteColor[2], whiteColor[3]);
-    }
-
-    glPopMatrix(); // end device orientation
+		for(unsigned i = 0; i < _touches.allObjects.count; i++) {
+			UITouch *const touch = (UITouch*)[_touches.allObjects objectAtIndex:i];
+			CGPoint touchPoint = [touch locationInView:self];
+			
+			glPushMatrix();
+			[self drawHotspotLines:[self vectorFromScreenLocation:touchPoint inAttitude:self.attitudeMatrix]];
+			glPopMatrix();
+		}
+		glColor4f(whiteColor[0], whiteColor[1], whiteColor[2], whiteColor[3]);
+	}
+	
+	glPopMatrix(); // end device orientation
 }
 
 #pragma mark- ORIENTATION
@@ -353,7 +328,7 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
     const GLKVector4 vector4 = GLKVector4Make(vector.x, vector.y, vector.z, 1);
     const GLKVector4 screenVector = GLKMatrix4MultiplyVector4(matrix, vector4);
     location->x = (screenVector.x / screenVector.w / 2.0 + 0.5) * CGRectGetWidth(self.frame);
-    location->y = (0.5-screenVector.y / screenVector.w / 2) * CGRectGetHeight(self.frame);
+    location->y = (0.5 - screenVector.y / screenVector.w / 2) * CGRectGetHeight(self.frame);
     return (screenVector.z >= 0);
 }
 

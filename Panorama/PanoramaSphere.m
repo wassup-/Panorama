@@ -50,20 +50,20 @@
             //starts at -pi/2 goes to pi/2
 
             //the first circle
-            const float phi0 = M_PI * ((float)(phiIdx + 0) * div_1_stacks - .5);
-            const float cosPhi0 = cos(phi0);
-            const float sinPhi0 = sin(phi0);
+            const GLfloat phi0 = M_PI * ((GLfloat)(phiIdx + 0) * div_1_stacks - .5);
+            const GLfloat cosPhi0 = cos(phi0);
+            const GLfloat sinPhi0 = sin(phi0);
 
             //second one
-            const float phi1 = M_PI * ((float)(phiIdx + 1) * div_1_stacks - .5);
-            const float cosPhi1 = cos(phi1);
-            const float sinPhi1 = sin(phi1);
+            const GLfloat phi1 = M_PI * ((GLfloat)(phiIdx + 1) * div_1_stacks - .5);
+            const GLfloat cosPhi1 = cos(phi1);
+            const GLfloat sinPhi1 = sin(phi1);
 
             //longitude
             for(unsigned thetaIdx = 0; thetaIdx < self.slices; ++thetaIdx) {
-                const float theta = -2.0 * M_PI * ((float)thetaIdx) * (1. / self.slices);
-                const float cosTheta = cos(theta + M_PI_2);
-                const float sinTheta = sin(theta + M_PI_2);
+                const GLfloat theta = -2.0 * M_PI * ((GLfloat)thetaIdx) * (1. / (self.slices - 1));
+                const GLfloat cosTheta = cos(theta + M_PI_2);
+                const GLfloat sinTheta = sin(theta + M_PI_2);
 
                 nPtr[0] = cosPhi0 * cosTheta;
                 nPtr[1] = sinPhi0;
@@ -99,10 +99,8 @@
             vPtr[1] = vPtr[4] = vPtr[-2];
             vPtr[2] = vPtr[5] = vPtr[-1];
 
-            if(tPtr != nil) {
-                tPtr[0] = tPtr[2] = tPtr[-2];
-                tPtr[1] = tPtr[3] = tPtr[-1];
-            }
+			tPtr[0] = tPtr[2] = tPtr[-2];
+			tPtr[1] = tPtr[3] = tPtr[-1];
         }
     }
     return self;
@@ -126,11 +124,11 @@
 -(void)render {
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_VERTEX_ARRAY);
-    glEnable(GL_TEXTURE_2D);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    if(self.textureInfo != 0) {
-        glBindTexture(GL_TEXTURE_2D, self.textureInfo.name);
-    }
+	glEnable(GL_TEXTURE_2D);
+	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+	if(self.textureInfo != 0) {
+		glBindTexture(GL_TEXTURE_2D, self.textureInfo.name);
+	}
     if(m_TexCoordsData != nil) {
         glTexCoordPointer(2, GL_FLOAT, 0, m_TexCoordsData);
     }
@@ -181,7 +179,7 @@
         return nil;
     }
 
-    NSString *path = [[NSBundle mainBundle] pathForResource:filename ofType:NULL];
+    NSString *const path = [[NSBundle mainBundle] pathForResource:filename ofType:NULL];
     return [self loadTextureFromPath:path];
 }
 
@@ -190,7 +188,7 @@
         return nil;
     }
 
-    UIImage *image = [UIImage imageWithContentsOfFile:path];
+    UIImage *const image = [UIImage imageWithContentsOfFile:path];
     return [self loadTextureFromUIImage:image];
 }
 

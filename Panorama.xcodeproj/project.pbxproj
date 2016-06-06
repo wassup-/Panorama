@@ -32,6 +32,8 @@
 		D5FAE0B117C895AB00AE6EC9 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D5FAE0B017C895AB00AE6EC9 /* CoreMotion.framework */; };
 		D5FAE0B317C895B200AE6EC9 /* GLKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D5FAE0B217C895B200AE6EC9 /* GLKit.framework */; };
 		D5FAE0B517C895BE00AE6EC9 /* OpenGLES.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D5FAE0B417C895BE00AE6EC9 /* OpenGLES.framework */; };
+		E7B006981D05A54700122337 /* PanoramaSphere.m in Sources */ = {isa = PBXBuildFile; fileRef = E7B006971D05A54700122337 /* PanoramaSphere.m */; };
+		E7E227F41D057B8E004564F3 /* pano.png in Resources */ = {isa = PBXBuildFile; fileRef = E7E227F31D057B8E004564F3 /* pano.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -79,6 +81,9 @@
 		D5FAE0B017C895AB00AE6EC9 /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
 		D5FAE0B217C895B200AE6EC9 /* GLKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLKit.framework; path = System/Library/Frameworks/GLKit.framework; sourceTree = SDKROOT; };
 		D5FAE0B417C895BE00AE6EC9 /* OpenGLES.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGLES.framework; path = System/Library/Frameworks/OpenGLES.framework; sourceTree = SDKROOT; };
+		E7B006961D05A54700122337 /* PanoramaSphere.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PanoramaSphere.h; sourceTree = "<group>"; };
+		E7B006971D05A54700122337 /* PanoramaSphere.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = PanoramaSphere.m; sourceTree = "<group>"; };
+		E7E227F31D057B8E004564F3 /* pano.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = pano.png; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -113,6 +118,8 @@
 				D55E8F951828D2360076A9D7 /* AppDelegate.m */,
 				D55E8FB01828D2360076A9D7 /* ViewController.h */,
 				D55E8FB11828D2360076A9D7 /* ViewController.m */,
+				E7B006961D05A54700122337 /* PanoramaSphere.h */,
+				E7B006971D05A54700122337 /* PanoramaSphere.m */,
 				D55E8FA81828D2360076A9D7 /* PanoramaView.h */,
 				D55E8FA91828D2360076A9D7 /* PanoramaView.m */,
 				D55E8FD11828D3400076A9D7 /* images */,
@@ -134,6 +141,7 @@
 		D55E8FD11828D3400076A9D7 /* images */ = {
 			isa = PBXGroup;
 			children = (
+				E7E227F31D057B8E004564F3 /* pano.png */,
 				D5EC7AB8183AFBC400F62609 /* park_2048.jpg */,
 				D55E8F9C1828D2360076A9D7 /* equirectangular-projection-lines.png */,
 			);
@@ -290,6 +298,7 @@
 				D5C8B44C18A8E58700051A88 /* Default-568h@2x.png in Resources */,
 				D55E8FE21828D3F50076A9D7 /* 60.png in Resources */,
 				D55E8FB61828D2360076A9D7 /* equirectangular-projection-lines.png in Resources */,
+				E7E227F41D057B8E004564F3 /* pano.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -308,6 +317,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E7B006981D05A54700122337 /* PanoramaSphere.m in Sources */,
 				D55E8FB21828D2360076A9D7 /* AppDelegate.m in Sources */,
 				D55E8FC61828D2360076A9D7 /* ViewController.m in Sources */,
 				D55E8FC11828D2360076A9D7 /* PanoramaView.m in Sources */,
@@ -430,7 +440,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "Panorama/Panorama-Prefix.pch";
 				INFOPLIST_FILE = "Panorama/Panorama-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				PRODUCT_NAME = Panorama;
 				WRAPPER_EXTENSION = app;
 			};
@@ -443,7 +453,7 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "Panorama/Panorama-Prefix.pch";
 				INFOPLIST_FILE = "Panorama/Panorama-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				PRODUCT_NAME = Panorama;
 				WRAPPER_EXTENSION = app;
 			};

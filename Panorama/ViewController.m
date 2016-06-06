@@ -18,17 +18,26 @@
 
 - (void)viewDidLoad{
     [super viewDidLoad];
-    panoramaView = [[PanoramaView alloc] init];
-    [panoramaView setImageByFilename:@"park_2048.jpg"];
+	
+	self.preferredFramesPerSecond = 60;
+	
+    panoramaView = [PanoramaView new];
+    [panoramaView setImageByFilename:@"pano.png"];
     [panoramaView setOrientToDevice:YES];
     [panoramaView setTouchToPan:NO];
     [panoramaView setPinchToZoom:YES];
-    [panoramaView setShowTouches:NO];
+    [panoramaView setShowTouches:YES];
     [self setView:panoramaView];
 }
 
--(void) glkView:(GLKView *)view drawInRect:(CGRect)rect{
-    [panoramaView draw];
+-(void)viewWillAppear:(BOOL)animated {
+	[super viewWillAppear:animated];
+	self.paused = NO;
+}
+
+-(void)viewWillDisappear:(BOOL)animated {
+	[super viewWillDisappear:animated];
+	self.paused = YES;
 }
 
 @end
