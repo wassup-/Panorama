@@ -7,6 +7,7 @@
 //
 
 #import "PanoramaView.h"
+#import "PanoramaSphere.h"
 
 @import CoreMotion;
 
@@ -17,9 +18,6 @@
 #define FOV_MAX 155
 #define Z_NEAR 0.1f
 #define Z_FAR 100.f
-// LINEAR for smoothing, NEAREST for pixelized
-#define IMAGE_SCALING GL_LINEAR  // GL_NEAREST, GL_LINEAR
-
 
 static GLfloat fclamp(GLfloat val, GLfloat min, GLfloat max) {
     return MAX(min, MIN(val, max));
@@ -30,7 +28,7 @@ typedef NS_ENUM(NSUInteger, SensorOrientation) {
     SensorOrientationNorth,
     SensorOrientationEast,
     SensorOrientationSouth,
-    SensorOrientationWest
+    SensorOrientationWest,
 };
 
 SensorOrientation GetSensorOrientation() {
@@ -81,14 +79,49 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
 
 @implementation PanoramaView
 
+-(instancetype)init {
+	self = [super init];
+//	[self commonInit];
+	return self;
+}
+
+-(instancetype)initWithCoder:(NSCoder *)aDecoder {
+	self = [super initWithCoder:aDecoder];
+	[self commonInit];
+	return self;
+}
+
+-(instancetype)initWithFrame:(CGRect)frame {
+	self = [super initWithFrame:frame];
+	if(CGRectIsEmpty(frame)) {
+		frame = UIScreen.mainScreen.bounds;
+	}
+	[self commonInit:frame];
+	return self;
+}
+
 -(id)initWithFrame:(CGRect)frame context:(EAGLContext *)context {
     self = [super initWithFrame:frame context:context];
-
-    [self initDevice];
-    [self initOpenGL:context];
-    self.sphere = [[PanoramaSphere alloc] init:48 slices:48 radius:10.0 textureFile:nil];
-
+	[self commonInit:frame context:context];
     return self;
+}
+
+-(void)commonInit {
+	const CGRect frame = UIScreen.mainScreen.bounds;
+	[self commonInit:frame];
+}
+
+-(void)commonInit:(CGRect)frame {
+	EAGLContext *const context = [[EAGLContext alloc] initWithAPI:kEAGLRenderingAPIOpenGLES2];
+	[EAGLContext setCurrentContext:context];
+	self.context = context;
+	[self commonInit:frame context:context];
+}
+
+-(void)commonInit:(CGRect)frame context:(EAGLContext *)context {
+	[self initDevice];
+	[self initOpenGL:context];
+	self.sphere = [[PanoramaSphere alloc] init:48 slices:48 radius:10.0 textureFile:nil];
 }
 
 -(void)initDevice {
@@ -106,20 +139,20 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
     [self addGestureRecognizer:self.panGesture];
 }
 
+#pragma mark - PROPERTIES
+
 -(void)setFieldOfView:(float)fieldOfView {
-    _fieldOfView = fieldOfView;
-    [self rebuildProjectionMatrix];
+	_fieldOfView = fieldOfView;
+	[self rebuildProjectionMatrix];
 }
 
 -(void)setImage:(UIImage*)image {
-    [sphere swapTextureWithImage:image];
+	[self.sphere swapTextureWithImage:image];
 }
 
 -(void)setImageByFilename:(NSString *)fileName {
-    [sphere swapTexture:fileName];
+	[self.sphere swapTexture:fileName];
 }
-
-#pragma mark - PROPERTIES
 
 -(BOOL)touchToPan {
     return self.panGesture.enabled;
@@ -139,11 +172,11 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
 
 -(void)setOrientToDevice:(BOOL)orientToDevice {
     _orientToDevice = orientToDevice;
-    if(motionManager.isDeviceMotionAvailable) {
+    if(self.motionManager.isDeviceMotionAvailable) {
         if(_orientToDevice) {
-            [motionManager startDeviceMotionUpdates];
+            [self.motionManager startDeviceMotionUpdates];
         } else {
-            [motionManager stopDeviceMotionUpdates];
+            [self.motionManager stopDeviceMotionUpdates];
         }
     }
 }
@@ -151,7 +184,7 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
 #pragma mark- OPENGL
 
 -(void)initOpenGL:(EAGLContext*)context {
-    [(CAEAGLLayer*)self.layer setOpaque:NO];
+    [(CAEAGLLayer *)self.layer setOpaque:NO];
     self.aspectRatio = CGRectGetWidth(self.frame) / CGRectGetHeight(self.frame);
     self.fieldOfView = 45 + 45 * atanf(self.aspectRatio); // hell ya
     [self rebuildProjectionMatrix];
@@ -185,8 +218,9 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
 -(void)display {
     [super display];
 
-    static GLfloat const whiteColor[] = {1.f, 1.f, 1.f, 1.f};
-    static GLfloat const clearColor[] = {0.f, 0.f, 0.f, 0.f};
+    static GLfloat const whiteColor[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    static GLfloat const clearColor[] = {0.7f, 0.7f, 0.7f, 1.0f};
+	static GLfloat const touchColor[] = {1.0f, 0.0f, 0.0f, 0.7f};
 
     glClearColor(clearColor[0], clearColor[1], clearColor[2], clearColor[3]);
     glClear(GL_COLOR_BUFFER_BIT);
@@ -198,7 +232,7 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
     glMultMatrixf(self.attitudeMatrix.m);
 
     glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, whiteColor);  // panorama at full color
-    [sphere render];
+    [self.sphere render];
     glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, clearColor);
     //        [meridians render];  // semi-transparent texture overlay (15° meridian lines)
 
@@ -209,8 +243,8 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
 
     // touch lines
     if(_showTouches && _numberOfTouches) {
-        glColor4f(1.f, 1.f, 1.f, 0.5f);
-        for(int i = 0; i < _touches.allObjects.count; i++) {
+		glColor4f(touchColor[0], touchColor[1], touchColor[2], touchColor[3]);
+        for(unsigned i = 0; i < _touches.allObjects.count; i++) {
             UITouch *const touch = (UITouch*)[_touches.allObjects objectAtIndex:i];
             CGPoint touchPoint = [touch locationInView:self];
 
@@ -218,7 +252,7 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
             [self drawHotspotLines:[self vectorFromScreenLocation:touchPoint inAttitude:self.attitudeMatrix]];
             glPopMatrix();
         }
-        glColor4f(1.f, 1.f, 1.f, 1.f);
+        glColor4f(whiteColor[0], whiteColor[1], whiteColor[2], whiteColor[3]);
     }
 
     glPopMatrix(); // end device orientation
@@ -227,8 +261,8 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
 #pragma mark- ORIENTATION
 
 -(GLKMatrix4)getDeviceOrientationMatrix {
-    if(_orientToDevice && [motionManager isDeviceMotionActive]) {
-        const CMRotationMatrix a = [[motionManager.deviceMotion attitude] rotationMatrix];
+    if(_orientToDevice && [self.motionManager isDeviceMotionActive]) {
+        const CMRotationMatrix a = [[self.motionManager.deviceMotion attitude] rotationMatrix];
         // arrangements of mappings of sensor axis to virtual axis (columns)
         // and combinations of 90 degree rotations (rows)
         switch(GetSensorOrientation()) {
@@ -295,19 +329,19 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
 }
 
 -(GLKVector3)vectorFromScreenLocation:(CGPoint)point inAttitude:(GLKMatrix4)matrix {
-    GLKMatrix4 inverse = GLKMatrix4Invert(GLKMatrix4Multiply(_projectionMatrix, matrix), nil);
-    GLKVector4 screen = GLKVector4Make(2.0 * (point.x / self.frame.size.width - .5),
-                                       2.0 * (.5 - point.y / self.frame.size.height),
+    const GLKMatrix4 inverse = GLKMatrix4Invert(GLKMatrix4Multiply(_projectionMatrix, matrix), nil);
+    const GLKVector4 screen = GLKVector4Make(2.0 * (point.x / CGRectGetWidth(self.frame) - .5),
+                                       2.0 * (.5 - point.y / CGRectGetHeight(self.frame)),
                                        1.0, 1.0);
-    GLKVector4 vec = GLKMatrix4MultiplyVector4(inverse, screen);
+    const GLKVector4 vec = GLKMatrix4MultiplyVector4(inverse, screen);
     return GLKVector3Normalize(GLKVector3Make(vec.x, vec.y, vec.z));
 }
 
 -(CGPoint)screenLocationFromVector:(GLKVector3)vector {
-    GLKMatrix4 matrix = GLKMatrix4Multiply(_projectionMatrix, self.attitudeMatrix);
-    GLKVector3 screenVector = GLKMatrix4MultiplyVector3(matrix, vector);
-    return CGPointMake((screenVector.x / screenVector.z / 2.0 + 0.5) * self.frame.size.width,
-                       (0.5 - screenVector.y / screenVector.z / 2) * self.frame.size.height);
+    const GLKMatrix4 matrix = GLKMatrix4Multiply(_projectionMatrix, self.attitudeMatrix);
+    const GLKVector3 screenVector = GLKMatrix4MultiplyVector3(matrix, vector);
+    return CGPointMake((screenVector.x / screenVector.z / 2.0 + 0.5) * CGRectGetWidth(self.frame),
+                       (0.5 - screenVector.y / screenVector.z / 2) * CGRectGetHeight(self.frame));
 }
 
 -(BOOL)computeScreenLocation:(CGPoint*)location fromVector:(GLKVector3)vector inAttitude:(GLKMatrix4)matrix {
@@ -316,10 +350,10 @@ GLKQuaternion GLKQuaternionFromTwoVectors(GLKVector3 u, GLKVector3 v) {
         return NO;
     }
     matrix = GLKMatrix4Multiply(_projectionMatrix, matrix);
-    GLKVector4 vector4 = GLKVector4Make(vector.x, vector.y, vector.z, 1);
-    GLKVector4 screenVector = GLKMatrix4MultiplyVector4(matrix, vector4);
-    location->x = (screenVector.x/screenVector.w/2.0 + 0.5) * self.frame.size.width;
-    location->y = (0.5-screenVector.y/screenVector.w/2) * self.frame.size.height;
+    const GLKVector4 vector4 = GLKVector4Make(vector.x, vector.y, vector.z, 1);
+    const GLKVector4 screenVector = GLKMatrix4MultiplyVector4(matrix, vector4);
+    location->x = (screenVector.x / screenVector.w / 2.0 + 0.5) * CGRectGetWidth(self.frame);
+    location->y = (0.5-screenVector.y / screenVector.w / 2) * CGRectGetHeight(self.frame);
     return (screenVector.z >= 0);
 }
 

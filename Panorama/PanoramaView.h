@@ -1,6 +1,3 @@
-@import Foundation;
-@import GLKit;
-
 /**
  * @class Panorama View
  * @author Robby Kraft
@@ -10,6 +7,10 @@
  *
  * @discussion a dynamic GLKView with a touch and motion sensor interface to align and immerse the perspective inside an equirectangular panorama projection
  */
+
+@import Foundation;
+@import GLKit;
+
 @interface PanoramaView : GLKView
 
 /// Set image by path or bundle - will check at both

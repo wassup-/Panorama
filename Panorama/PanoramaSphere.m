@@ -1,9 +1,11 @@
 #include "PanoramaSphere.h"
 
+#import <OpenGLES/ES1/gl.h>
+
+// LINEAR for smoothing, NEAREST for pixelized
+#define IMAGE_SCALING GL_LINEAR  // GL_NEAREST, GL_LINEAR
+
 @interface PanoramaSphere () {
-    //  from Touch Fighter by Apple
-    //  in Pro OpenGL ES for iOS
-    //  by Mike Smithwick Jan 2011 pg. 78
     GLfloat *m_TexCoordsData;
     GLfloat *m_VertexData;
     GLfloat *m_NormalData;
@@ -15,7 +17,7 @@
 
 -(GLKTextureInfo *)loadTextureFromBundle:(NSString *)filename;
 -(GLKTextureInfo *)loadTextureFromPath:(NSString *)path;
--(GLKTextureInfo *)loadTextureFromUIImage:(UIImage *)image
+-(GLKTextureInfo *)loadTextureFromUIImage:(UIImage *)image;
 
 @end
 
@@ -26,7 +28,7 @@
     //   flipped(inverted)texture coords across the Z
     //   vertices rotated 90deg
     if(self = [super init]) {
-        const CGfloat scale = radius;
+        const CGFloat scale = radius;
 
         if(textureFile != nil) {
             self.textureInfo = [self loadTextureFromBundle:textureFile];
@@ -34,27 +36,26 @@
 
         self.stacks = stacks;
         self.slices = slices;
-
-        m_VertexData = nil;
-        m_TexCoordsData = nil;
+		
+		const GLfloat div_1_stacks = 1. / self.stacks;
+		
         // Vertices
         GLfloat *vPtr = m_VertexData = (GLfloat *)malloc(sizeof(GLfloat) * 3 * ((self.slices * (2 + 2)) * self.stacks));
         // Normals
         GLfloat *nPtr = m_NormalData = (GLfloat *)malloc(sizeof(GLfloat) * 3 * ((self.slices * (2 + 2)) * self.stacks));
-        GLfloat *tPtr = nil;
-        tPtr = m_TexCoordsData = (GLfloat *)malloc(sizeof(GLfloat) * 2 * ((self.slices * (2 + 2)) * self.stacks));
+        GLfloat *tPtr = m_TexCoordsData = (GLfloat *)malloc(sizeof(GLfloat) * 2 * ((self.slices * (2 + 2)) * self.stacks));
 
         // Latitude
         for(unsigned phiIdx = 0; phiIdx < self.stacks; ++phiIdx) {
             //starts at -pi/2 goes to pi/2
 
             //the first circle
-            const float phi0 = M_PI * ((float)(phiIdx + 0) * (1. / self.stacks) - .5);
+            const float phi0 = M_PI * ((float)(phiIdx + 0) * div_1_stacks - .5);
             const float cosPhi0 = cos(phi0);
             const float sinPhi0 = sin(phi0);
 
             //second one
-            const float phi1 = M_PI * ((float)(phiIdx + 1) * (1. / self.stacks) - .5);
+            const float phi1 = M_PI * ((float)(phiIdx + 1) * div_1_stacks - .5);
             const float cosPhi1 = cos(phi1);
             const float sinPhi1 = sin(phi1);
 
@@ -77,19 +78,16 @@
                 vPtr[3] = scale * nPtr[3];
                 vPtr[4] = scale * nPtr[4];
                 vPtr[5] = scale * nPtr[5];
-
-                if(tPtr != nil) {
-                    const GLfloat texX = (GLfloat)thetaIdx * (1. / (self.slices - 1));
-                    tPtr[0] = 1. - texX;
-                    tPtr[1] = (GLfloat)(phiIdx + 0) * (1. / self.stacks);
-                    tPtr[2] = 1. - texX;
-                    tPtr[3] = (GLfloat)(phiIdx + 1) * (1. / self.stacks);
-
-                    tPtr += (2 * 2);
-                }
-
+				
+				const GLfloat texX = (GLfloat)thetaIdx * (1. / (self.slices - 1));
+				tPtr[0] = 1. - texX;
+				tPtr[1] = (GLfloat)(phiIdx + 0) * div_1_stacks;
+				tPtr[2] = 1. - texX;
+				tPtr[3] = (GLfloat)(phiIdx + 1) * div_1_stacks;
+				
                 nPtr += (2 * 3);
                 vPtr += (2 * 3);
+				tPtr += (2 * 2);
             }
 
             //Degenerate triangle to connect stacks and maintain winding order
@@ -201,8 +199,11 @@
         return nil;
     }
 
-    NSDictionary *const options = @{ GLKTextureLoaderOriginBottomLeft: @(YES) };
-    NSError *error = nil;
+    NSDictionary *const options = @{
+									GLKTextureLoaderOriginBottomLeft: @(YES)
+									};
+	(void)glGetError();
+	NSError *error = nil;
     GLKTextureInfo *const info = [GLKTextureLoader textureWithCGImage: image.CGImage
                                                               options: options
                                                                 error: &error];
